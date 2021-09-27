@@ -9,7 +9,7 @@
 using namespace std;
 
 map<string, bool> variables;
-map<char, int> operators = {{'~', 3}, {'*', 2}, {'+', 1}};
+map<char, int> operators = {{'~', 4}, {'^', 3}, {'*', 2}, {'+', 1}};
 
 bool isLatinLetter(char c)
 {
@@ -78,6 +78,7 @@ void proccessUserInput(string input)
         }
         else
         {
+            cout << element << "it" << endl;
             cout << "Assignment sign expected after variable!" << endl;
             return;
         }
@@ -112,13 +113,21 @@ int doTheOperations(string polishNotation)
             result.pop();
             result.push(!x);
         }
+        else if (element == '^')
+        {
+            int x = result.top();
+            result.pop();
+            int y = result.top();
+            result.pop();
+            result.push(x ^ y);
+        }
         else if (element == '*')
         {
             int x = result.top();
             result.pop();
             int y = result.top();
             result.pop();
-            result.push(x && y);
+            result.push(x & y);
         }
         else if (element == '+')
         {
@@ -126,7 +135,7 @@ int doTheOperations(string polishNotation)
             result.pop();
             int y = result.top();
             result.pop();
-            result.push(x || y);
+            result.push(x | y);
         }
         else
         {
@@ -175,6 +184,7 @@ string toPolishNotation(string formula)
             while (!operatorsStack.empty())
             {
                 char last = operatorsStack.top();
+                operatorsStack.pop();
 
                 if (last == '(')
                 {
@@ -182,12 +192,12 @@ string toPolishNotation(string formula)
                 }
 
                 result += last;
-                operatorsStack.pop();
             }
         }
         else
         {
             string variable = readVariable(formula, i);
+            i--;
             if (variables.find(variable) == variables.end())
             {
                 cout << "Unknown variable: " << variable << endl;
@@ -217,7 +227,7 @@ int main()
         getline(cin, userInput);
     }
 
-    cout << "Enter the formula:\n  ~ - negation\n  + - disjunction\n  * - conjunction\n  () - brackets" << endl;
+    cout << "Enter the formula:\n  ~ - negation\n  ^ - exclusive OR\n  + - disjunction\n  * - conjunction\n  () - brackets" << endl;
 
     string formula;
 
