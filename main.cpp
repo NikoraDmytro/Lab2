@@ -8,27 +8,99 @@
 
 using namespace std;
 
-map<char, int> variables;
+map<string, bool> variables;
 map<char, int> operators = {{'~', 3}, {'*', 2}, {'+', 1}};
 
-string normalize(string str)
+bool isLatinLetter(char c)
 {
-    string normalizedStirng = "";
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
 
-    for (int i = 0; i < str.length(); i++)
+bool isNumber(string number)
+{
+    int index = 0;
+    if (number[0] == '-')
     {
-        if (str[i] != ' ')
+        index++;
+    }
+    while (index != number.length())
+    {
+        int num = number[index] - '0';
+        if (num > 9 || num < 0)
         {
-            normalizedStirng += str[i];
+            return false;
+        }
+        index++;
+    }
+    return true;
+}
+
+string readVariable(string s, int &index)
+{
+    string result = "";
+    while (true)
+    {
+        char element = s[index];
+        if (isLatinLetter(element))
+        {
+            result += element;
+            index++;
+        }
+        else
+        {
+            return result;
         }
     }
+}
 
-    return normalizedStirng;
+void proccessUserInput(string input)
+{
+    int index = 0;
+    string value = "";
+    string variable = readVariable(input, index);
+    bool afterAssignment = false;
+
+    while (index != input.length())
+    {
+        char element = input[index];
+        if (element == ' ')
+        {
+            index++;
+            continue;
+        }
+        if (afterAssignment)
+        {
+            value += element;
+        }
+        else if (element == '=')
+        {
+            afterAssignment = true;
+        }
+        else
+        {
+            cout << "Assignment sign expected after variable!" << endl;
+            return;
+        }
+        index++;
+    }
+
+    if (variable.empty() || value.empty())
+    {
+        cout << "Valid expression expected!" << endl;
+        return;
+    }
+    if (!isNumber(value))
+    {
+        cout << "Valid integer number expected after assignment!" << endl;
+        return;
+    }
+
+    variables[variable] = (bool)stoi(value);
 }
 
 int doTheOperations(string polishNotation)
 {
-    stack<int> result;
+    stack<bool> result;
 
     for (int i = 0; i < polishNotation.length(); i++)
     {
@@ -38,8 +110,7 @@ int doTheOperations(string polishNotation)
         {
             int x = result.top();
             result.pop();
-
-            result.push((x + 1) % 2);
+            result.push(!x);
         }
         else if (element == '*')
         {
@@ -47,8 +118,7 @@ int doTheOperations(string polishNotation)
             result.pop();
             int y = result.top();
             result.pop();
-
-            result.push(min(x, y));
+            result.push(x && y);
         }
         else if (element == '+')
         {
@@ -56,14 +126,11 @@ int doTheOperations(string polishNotation)
             result.pop();
             int y = result.top();
             result.pop();
-
-            result.push(max(x, y));
+            result.push(x || y);
         }
         else
         {
-            int value = variables[element];
-
-            result.push(value);
+            result.push(element - '0');
         }
     }
 
@@ -78,6 +145,10 @@ string toPolishNotation(string formula)
     for (int i = 0; i < formula.length(); i++)
     {
         char element = formula[i];
+        if (element == ' ')
+        {
+            continue;
+        }
         if (operators.find(element) != operators.end())
         {
             while (!operatorsStack.empty())
@@ -95,16 +166,15 @@ string toPolishNotation(string formula)
 
             operatorsStack.push(element);
         }
-        if (element == '(')
+        else if (element == '(')
         {
             operatorsStack.push(element);
         }
-        if (element == ')')
+        else if (element == ')')
         {
             while (!operatorsStack.empty())
             {
                 char last = operatorsStack.top();
-                operatorsStack.pop();
 
                 if (last == '(')
                 {
@@ -112,11 +182,18 @@ string toPolishNotation(string formula)
                 }
 
                 result += last;
+                operatorsStack.pop();
             }
         }
-        if (variables.find(element) != variables.end())
+        else
         {
-            result += element;
+            string variable = readVariable(formula, i);
+            if (variables.find(variable) == variables.end())
+            {
+                cout << "Unknown variable: " << variable << endl;
+                return "error";
+            }
+            result += variables[variable] ? '1' : '0';
         }
     }
 
@@ -131,23 +208,13 @@ string toPolishNotation(string formula)
 
 int main()
 {
-
-    cout << "Specify as many variables as you like.Type empty string to exit." << endl;
-    while (true)
+    string userInput;
+    cout << "Specify as many variables as you like.To move to the next step type 'exit','quit' or empty line." << endl;
+    getline(cin, userInput);
+    while (!(userInput.empty() || userInput == "exit" || userInput == "quit"))
     {
-        string userInput;
+        proccessUserInput(userInput);
         getline(cin, userInput);
-        userInput = normalize(userInput);
-
-        if (userInput == "")
-        {
-            break;
-        }
-
-        char var = userInput[0];
-        int value = userInput[2] - '0';
-
-        variables[var] = value;
     }
 
     cout << "Enter the formula:\n  ~ - negation\n  + - disjunction\n  * - conjunction\n  () - brackets" << endl;
@@ -155,9 +222,13 @@ int main()
     string formula;
 
     getline(cin, formula);
-    formula = normalize(formula);
 
     string polishNotation = toPolishNotation(formula);
+
+    if (polishNotation == "error")
+    {
+        return 0;
+    }
 
     cout << "\n<-----Result----->" << endl;
 
