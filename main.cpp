@@ -11,92 +11,74 @@ using namespace std;
 map<string, bool> variables;
 map<char, int> operators = {{'~', 4}, {'^', 3}, {'*', 2}, {'+', 1}};
 
-bool isLatinLetter(char c)
+pair<bool, bool> takeTwo(stack<bool> &result)
 {
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+    int x = result.top();
+    result.pop();
+    int y = result.top();
+    result.pop();
+
+    return make_pair(x, y);
 }
 
-bool isNumber(string number)
+bool takeOne(stack<bool> &result)
 {
-    int index = 0;
-    if (number[0] == '-')
-    {
-        index++;
-    }
-    while (index != number.length())
-    {
-        int num = number[index] - '0';
-        if (num > 9 || num < 0)
-        {
-            return false;
-        }
-        index++;
-    }
-    return true;
+    int x = result.top();
+    result.pop();
+
+    return x;
 }
 
 string readVariable(string s, int &index)
 {
     string result = "";
-    while (true)
+    while (s[index] != ' ' && index != s.length())
     {
-        char element = s[index];
-        if (isLatinLetter(element))
-        {
-            result += element;
-            index++;
-        }
-        else
-        {
-            return result;
-        }
+        result += s[index];
+        index++;
     }
+    index--;
+    return result;
 }
 
 void proccessUserInput(string input)
 {
-    int index = 0;
-    string value = "";
-    string variable = readVariable(input, index);
-    bool afterAssignment = false;
+    int value = -1;
+    string variable = "";
+    string::iterator index = input.begin();
 
-    while (index != input.length())
+    while (*index != '=')
     {
-        char element = input[index];
-        if (element == ' ')
+        if (index == input.end())
         {
-            index++;
-            continue;
-        }
-        if (afterAssignment)
-        {
-            value += element;
-        }
-        else if (element == '=')
-        {
-            afterAssignment = true;
-        }
-        else
-        {
-            cout << element << "it" << endl;
-            cout << "Assignment sign expected after variable!" << endl;
+            cout << "Assignment expected!" << endl;
             return;
+        }
+        if (*index != ' ')
+        {
+            variable += *index;
         }
         index++;
     }
-
-    if (variable.empty() || value.empty())
+    //Skipping all the whitespaces after the assignment
+    while (*index == ' ' || *index == '=')
     {
-        cout << "Valid expression expected!" << endl;
+        index++;
+    }
+    if (variable.empty() || index == input.end())
+    {
+        cout << "Variable or value is missing!" << endl;
         return;
     }
-    if (!isNumber(value))
+    //There must be only one character left and it must be 0 or 1
+    if ((*index != '0' && *index != '1') || index != input.end() - 1)
     {
-        cout << "Valid integer number expected after assignment!" << endl;
+        cout << "Expected 0 or 1 as argument!" << endl;
         return;
     }
+    value = *index - '0';
 
-    variables[variable] = (bool)stoi(value);
+    variables[variable] = (bool)value;
 }
 
 int doTheOperations(string polishNotation)
@@ -109,33 +91,22 @@ int doTheOperations(string polishNotation)
 
         if (element == '~')
         {
-            int x = result.top();
-            result.pop();
-            result.push(!x);
+            result.push(!takeOne(result));
         }
         else if (element == '^')
         {
-            int x = result.top();
-            result.pop();
-            int y = result.top();
-            result.pop();
-            result.push(x ^ y);
+            pair<bool, bool> args = takeTwo(result);
+            result.push(args.first ^ args.second);
         }
         else if (element == '*')
         {
-            int x = result.top();
-            result.pop();
-            int y = result.top();
-            result.pop();
-            result.push(x & y);
+            pair<bool, bool> args = takeTwo(result);
+            result.push(args.first & args.second);
         }
         else if (element == '+')
         {
-            int x = result.top();
-            result.pop();
-            int y = result.top();
-            result.pop();
-            result.push(x | y);
+            pair<bool, bool> args = takeTwo(result);
+            result.push(args.first | args.second);
         }
         else
         {
@@ -154,10 +125,6 @@ string toPolishNotation(string formula)
     for (int i = 0; i < formula.length(); i++)
     {
         char element = formula[i];
-        if (element == ' ')
-        {
-            continue;
-        }
         if (operators.find(element) != operators.end())
         {
             while (!operatorsStack.empty())
@@ -194,10 +161,9 @@ string toPolishNotation(string formula)
                 result += last;
             }
         }
-        else
+        else if (element != ' ')
         {
             string variable = readVariable(formula, i);
-            i--;
             if (variables.find(variable) == variables.end())
             {
                 cout << "Unknown variable: " << variable << endl;
@@ -220,12 +186,11 @@ int main()
 {
     string userInput;
     cout << "Specify as many variables as you like.To move to the next step type 'exit','quit' or empty line." << endl;
-    getline(cin, userInput);
-    while (!(userInput.empty() || userInput == "exit" || userInput == "quit"))
+    do
     {
-        proccessUserInput(userInput);
         getline(cin, userInput);
-    }
+        proccessUserInput(userInput);
+    } while (!(userInput.empty() || userInput == "exit" || userInput == "quit"));
 
     cout << "Enter the formula:\n  ~ - negation\n  ^ - exclusive OR\n  + - disjunction\n  * - conjunction\n  () - brackets" << endl;
 
