@@ -32,7 +32,7 @@ bool takeOne(stack<bool> &result)
 string readVariable(string s, int &index)
 {
     string result = "";
-    while (s[index] != ' ' && index != s.length())
+    while (s[index] != ' ' && s[index] != ')' && index != s.length())
     {
         result += s[index];
         index++;
@@ -205,10 +205,16 @@ int main()
         return 0;
     }
 
-    cout << "\n<-----Result----->" << endl;
-
     int result = doTheOperations(polishNotation);
 
+    cout << "\n<-----Results----->" << endl;
+
+    cout << "RPN: ";
+    for (int i = 0; i < polishNotation.length(); i++)
+    {
+        cout << polishNotation[i] << " ";
+    }
+    cout << "\n";
     cout << result;
 
     return 0;
